@@ -30,7 +30,7 @@ export default class AbsenceUiRecord {
            when_text = "(va "+this.absence.startSlot.timeSlotName.rank+")"
         }
 
-        el.innerText = this.absence.employee.toUpperCase() + (when_text ? " "+when_text : "" + when_text)
+        el.innerText = this.absence.employee + (when_text ? " "+when_text : "" + when_text)
         this.element = el
     }
 }
