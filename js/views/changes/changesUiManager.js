@@ -96,9 +96,9 @@ export class ChangesUiManager {
                                 return;
                             }
 
-                            changes.push(new ChangesUIRecordClass(group, branch, i, i, appointment))
                             i++;
                         }
+                        changes.push(new ChangesUIRecordClass(group, branch, appointment.startTimeSlot, appointment.endTimeSlot, appointment));
                     }
                 })
             })
