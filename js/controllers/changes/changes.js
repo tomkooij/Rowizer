@@ -40,7 +40,7 @@ class Changes {
 
         this.#appointmentCategories = {
             "activities": {
-                options: {type: 'activity'},
+                options: {type: 'exam'},
                 lastModified: 0
             },
             "exam": {
