@@ -43,6 +43,10 @@ class Changes {
                 options: {type: 'activity'},
                 lastModified: 0
             },
+            "exam": {
+                options: {type: 'exam'},
+                lastModified: 0
+            },
             "modified": {
                 options: {modified: true},
                 lastModified: 0
