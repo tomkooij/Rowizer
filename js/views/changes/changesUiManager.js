@@ -68,44 +68,67 @@ export class ChangesUiManager {
 
     fillTable() {
         let changes = []
-        let app_filtered = Object.values(this.changesManager.appointments).filter(app => app.groupsInDepartments.length)
-
-
-
+        // Hier wordt normaal gefilterd op of er een lesgroep gekoppeld is aan een afspraak. 
+        // laat nu alles zien: exams en keuzelessen hebben geen afspraak
+        let app_filtered = Object.values(this.changesManager.appointments) //.filter((app => app.groupsInDepartments.length)
 
         let do_app = function (apps, cm) {
             apps.forEach(appointment => {
-                appointment.groupsInDepartments.forEach(group_id => {
-                    let group = cm.connector.getGroupInDepartment(group_id)
-                    let branch = cm.connector.getDepartmentOfBranch(group.departmentOfBranch)
-                    let i = appointment.startTimeSlot
+                if(appointment.groupsInDepartments.length != 0){
+                    appointment.groupsInDepartments.forEach(group_id => {
+
+                        let group = cm.connector.getGroupInDepartment(group_id)
+                        let branch = cm.connector.getDepartmentOfBranch(group.departmentOfBranch)
+                        let i = appointment.startTimeSlot
 
 
-
-                    if(appointment.type === "activity"){
-                        if (appointment.cancelled && changes.find(c => c.entity.id === group.id && c.period_start <= appointment.startTimeSlot && c.period_end >= appointment.endTimeSlot)){
-                            return;
-                        }
-                        changes.push(new ChangesUIRecordClass(group, branch, appointment.startTimeSlot, appointment.endTimeSlot, appointment))
-
-                    }
-                    else {
-                        while (i <= appointment.endTimeSlot) {
-                            //filteren van dingen die tegelijk met activiteiten uitvallen
-                            if (changes.find(c => c.entity.id === group.id && c.period_start <= i && c.period_end >= i)) {
+                        if(appointment.type === "activity"){
+                            if (appointment.cancelled && changes.find(c => c.entity.id === group.id && c.period_start <= appointment.startTimeSlot && c.period_end >= appointment.endTimeSlot)){
                                 return;
                             }
+                            changes.push(new ChangesUIRecordClass(group, branch, appointment.startTimeSlot, appointment.endTimeSlot, appointment))
+                        } else {
+                            while (i <= appointment.endTimeSlot) {
+                                //filteren van dingen die tegelijk met activiteiten uitvallen
+                                if (changes.find(c => c.entity.id === group.id && c.period_start <= i && c.period_end >= i)) {
+                                    return;
+                                }
 
-                            i++;
+                                i++;
+                            }
+                            changes.push(new ChangesUIRecordClass(group, branch, appointment.startTimeSlot, appointment.endTimeSlot, appointment));
                         }
+                    })
+                } else if (appointment.students.length != 0 ) {
+                    console.log("appointment with students but no group in department: " + appointment.type);
+                    console.log(appointment)
+                    // loop alle studenten langs, en haal hun afdeling (klas) op.
+                    let depts = new Set()
+                        appointment.students.forEach(student => {
+                        let dept = cm.connector.getStudentInDepartment(student).departmentOfBranch;
+                        depts.add(dept);
+                    })
+                    // maak voor alle afdelingen een fake groep aan, en voeg die toe aan de changes.
+                    //  De naam van de groep is de opmerking van de roostermaker "remark / schedulerremake" in zermelo
+                    depts.forEach(dept => {
+                        let branch = cm.connector.getDepartmentOfBranch(dept)
+                        // Maak een fake group, met naam op basis van de opmerking van de roostermaker
+                        let group = {'id': appointment.id, 'departmentOfBranch': dept, 'name': appointment.remark, 'extendedName': appointment.remark, "isMainGroup": false, "isMentorGroup": false}
                         changes.push(new ChangesUIRecordClass(group, branch, appointment.startTimeSlot, appointment.endTimeSlot, appointment));
-                    }
-                })
+                    })
+                } else {
+                    console.log("Skipping: " + appointment.type[0]);
+                    //console.log(appointment.students);
+                    //console.log(appointment.subjects);
+                    //console.log(appointment);}
+                }
             })
 
         }
+
         do_app(app_filtered.filter(app => app.type === 'activity' && app.valid && !app.cancelled), this)
         do_app(app_filtered.filter(app => app.type === 'activity' && app.valid && app.cancelled), this)
+        //do_app(app_filtered.filter(app => app.type === 'exam'), this)
 
         do_app(app_filtered.filter(app => app.type === 'lesson' && app.valid && !app.cancelled), this)
         do_app(app_filtered.filter(app => app.type === 'lesson' && app.valid && app.cancelled), this)

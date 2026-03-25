@@ -99,6 +99,10 @@ export default class ZermeloConnector extends connector {
         return this.#groupsInDepartment[id]
     }
 
+    getStudentInDepartment(id){
+        return this.#studentsInDepartments[id]
+    }
+
     getDepartmentOfBranch(id){
         return this.#departments[id]
     }
