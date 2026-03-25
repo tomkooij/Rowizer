@@ -46,10 +46,14 @@ export default class ChangesUIRecordClass extends ChangesUIRecord {
                 str += "act vervalt"
             }
             if (this.appointment.type === 'lesson') {
-                str += "vervalt"
+                str += this.appointment.teachers.slice(0, 2).join(",")
+                if (this.appointment.teachers.length > 2) {
+                    str += "+" + (this.appointment.teachers.length - 1).toString()
+                }
+                str += " vervalt"
             }
             if (this.appointment.type === 'exam') {
-                str += "TOETS"
+                str += "toets vervalt"
             }
         }
         return str

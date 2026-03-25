@@ -113,6 +113,10 @@ export class ChangesUiManager {
                     depts.forEach(dept => {
                         let branch = cm.connector.getDepartmentOfBranch(dept)
                         // Maak een fake group, met naam op basis van de opmerking van de roostermaker
+                        if (appointment.remark === "") {
+                            // roostermaker heeft iets gemaakt zonder de wijziging. Meestal extra les of examentraining
+                            appointment.remark = appointment.subjects[0].substring(0, 6);
+                        }
                         let group = {'id': appointment.id, 'departmentOfBranch': dept, 'name': appointment.remark, 'extendedName': appointment.remark, "isMainGroup": false, "isMentorGroup": false}
                         changes.push(new ChangesUIRecordClass(group, branch, appointment.startTimeSlot, appointment.endTimeSlot, appointment));
                     })
@@ -133,7 +137,9 @@ export class ChangesUiManager {
         do_app(app_filtered.filter(app => app.type === 'lesson' && app.valid && !app.cancelled), this)
         do_app(app_filtered.filter(app => app.type === 'lesson' && app.valid && app.cancelled), this)
 
-        do_app(app_filtered.filter(app => app.type === "lesson" && !app.valid), this)
+        // als onderstaand AAN staat, dan staat bij docent wijziging de les twee keer op het bord, de oude gewijzigde les is !valid
+        //  dis komt anders als "vervalt" met de oude docent op het bord.
+        //do_app(app_filtered.filter(app => app.type === "lesson" && !app.valid), this)
 
         changes.sort((a, b) => {
             if (a.appointment.type !== b.appointment.type) {
