@@ -100,6 +100,12 @@ export class ChangesUiManager {
                         }
                     })
                 } else if (appointment.students.length != 0 ) {
+                    //
+                    // HELP DIT IS EEN STOMME HACK
+                    // DIT MOET NIET HIER
+                    //
+                    // Model-view-controller... -> dit moet in de connector::changes.
+                    //
                     console.log("appointment with students but no group in department: " + appointment.type);
                     console.log(appointment)
                     // loop alle studenten langs, en haal hun afdeling (klas) op.
@@ -112,12 +118,13 @@ export class ChangesUiManager {
                     //  De naam van de groep is de opmerking van de roostermaker "remark / schedulerremake" in zermelo
                     depts.forEach(dept => {
                         let branch = cm.connector.getDepartmentOfBranch(dept)
-                        // Maak een fake group, met naam op basis van de opmerking van de roostermaker
-                        if (appointment.remark === "") {
-                            // roostermaker heeft iets gemaakt zonder de wijziging. Meestal extra les of examentraining
-                            appointment.remark = appointment.subjects[0].substring(0, 6);
+                        // Maak een fake group, met naam uit "subject" van de afspraak, en extended name uit "remark" van de afspraak. 
+                        let remark = appointment.subjects[0].substring(0, 6)
+                        if (appointment.type === "exam") {
+                            // toetsen krijgen uitgebreide beschrijving:
+                            remark += " " + appointment.remark;
                         }
-                        let group = {'id': appointment.id, 'departmentOfBranch': dept, 'name': appointment.remark, 'extendedName': appointment.remark, "isMainGroup": false, "isMentorGroup": false}
+                        let group = {'id': appointment.id, 'departmentOfBranch': dept, 'name': remark, 'extendedName': remark, "isMainGroup": false, "isMentorGroup": false}
                         changes.push(new ChangesUIRecordClass(group, branch, appointment.startTimeSlot, appointment.endTimeSlot, appointment));
                     })
                 } else {
@@ -132,7 +139,8 @@ export class ChangesUiManager {
 
         do_app(app_filtered.filter(app => app.type === 'activity' && app.valid && !app.cancelled), this)
         do_app(app_filtered.filter(app => app.type === 'activity' && app.valid && app.cancelled), this)
-        //do_app(app_filtered.filter(app => app.type === 'exam'), this)
+        do_app(app_filtered.filter(app => app.type === 'exam' && app.valid && !app.cancelled), this)
+        do_app(app_filtered.filter(app => app.type === 'exam' && app.valid && app.cancelled), this)
 
         do_app(app_filtered.filter(app => app.type === 'lesson' && app.valid && !app.cancelled), this)
         do_app(app_filtered.filter(app => app.type === 'lesson' && app.valid && app.cancelled), this)

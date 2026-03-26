@@ -115,7 +115,7 @@ class Changes {
                 }
             })
         })
-
+        
         if(this.#mergeMultipleHourSpan){
             modified_appointments =  mergeSubsequentAppointments(Object.values(modified_appointments))
             //this.#combineSpansMultipleHours(modified_appointments)
@@ -190,6 +190,44 @@ class Changes {
 
 
 
+        })
+
+        // TK HACK
+        // HELP
+        // DIT IS ASYNC
+        // VERPLAATS NAAR VIEW????
+        let timeslots = this.connector.getTodayTimeSlots()
+        timeslots.forEach(timeslot =>{
+            console.log(timeslot)
+            })
+        
+        
+        modified_appointments.forEach(appointment=>{
+            // debug
+            console.log(appointment)
+
+            if (appointment.type === "exam") { // && appointment.startTimeSlot === null) {
+                console.log("TK HACK: setting timeslot for exam with id " + appointment.id) 
+
+                let startTime = new Date(appointment.start * 1000).getHours() + ":" + ("00" + new Date(appointment.start * 1000).getMinutes()).slice(-2)
+                let endTime = new Date(appointment.end * 1000).getHours() + ":" + ("00" + new Date(appointment.end * 1000).getMinutes()).slice(-2)
+                // TODO 12:0 wordt 12:0 ipv 12:00, misschien altijd minuten op 2 cijfers zetten?
+                appointment.locations[0] += " " + startTime + "-" + endTime
+                
+                let startSlot = timeslots.find(slot=> appointment.start <= slot.startDt.getTime()/1000)
+                let endSlot = timeslots.find(slot=> appointment.end <= slot.startDt.getTime()/1000)
+                
+               // TODO als niets gevonden dan eerste resp laatste slot nemen
+                console.log(startSlot)
+                debugger   
+                appointment.startTimeSlot = startSlot.timeSlotName.code
+                if (endSlot === undefined) {
+                    appointment.endTimeSlot = "a10" // FIXME. STUPID HACK.
+                } else {
+                    appointment.endTimeSlot = endSlot.timeSlotName.code   
+                }
+                // TODO naar boven plaatsen zodat "mergeappointsments" kan gebeuren. Maar async / await probleem.
+            }
         })
 
         let modified_objects_object = {}
