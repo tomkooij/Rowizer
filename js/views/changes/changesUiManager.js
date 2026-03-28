@@ -82,7 +82,7 @@ export class ChangesUiManager {
                         let i = appointment.startTimeSlot
 
 
-                        if(appointment.type === "activity"){
+                        if(appointment.type === "activity" || appointment.type === "exam") {
                             if (appointment.cancelled && changes.find(c => c.entity.id === group.id && c.period_start <= appointment.startTimeSlot && c.period_end >= appointment.endTimeSlot)){
                                 return;
                             }
@@ -104,10 +104,10 @@ export class ChangesUiManager {
                     // HELP DIT IS EEN STOMME HACK
                     // DIT MOET NIET HIER
                     //
-                    // Model-view-controller... -> dit moet in de connector::changes.
+                    // Model-view-controller... -> dit moet in de connector::changes. 
                     //
-                    console.log("appointment with students but no group in department: " + appointment.type);
-                    console.log(appointment)
+                    //console.log("appointment with students but no group in department: " + appointment.type);
+                    //console.log(appointment)
                     // loop alle studenten langs, en haal hun afdeling (klas) op.
                     let depts = new Set()
                         appointment.students.forEach(student => {
@@ -128,10 +128,7 @@ export class ChangesUiManager {
                         changes.push(new ChangesUIRecordClass(group, branch, appointment.startTimeSlot, appointment.endTimeSlot, appointment));
                     })
                 } else {
-                    console.log("Skipping: " + appointment.type[0]);
-                    //console.log(appointment.students);
-                    //console.log(appointment.subjects);
-                    //console.log(appointment);}
+                    console.log("Skipping: " + appointment.type + "" + appointment.subjects);
                 }
             })
 

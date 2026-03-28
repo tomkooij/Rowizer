@@ -22,13 +22,18 @@ export default class ChangesUIRecordClass extends ChangesUIRecord {
 
             } else {
                 if (this.entity.isMainGroup) {
-                    str += this.appointment.subjects[0].substring(0, 6)
+                    if (this.appointment.subjects.length) {
+                        str += this.appointment.subjects[0].substring(0, 6)
+                    } else {
+                        console.log("appointment with no subjects: " + this.appointment.type);
+                        console.log(this.appointment);
+                        str += this.appointment.remark || "" 
+                    }
                     if (this.appointment.subjects.length > 1) {
                         str += "+" + (this.appointment.subjects.length - 1).toString()
                     }
                     str += " "
                 }
-
             }
 
             str += this.appointment.teachers.slice(0, 2).join(",")
