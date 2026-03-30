@@ -74,6 +74,10 @@ export class ChangesUiManager {
 
         let do_app = function (apps, cm) {
             apps.forEach(appointment => {
+                
+                if (appointment.id === 1316992) {
+                    debugger;
+                }
                 if(appointment.groupsInDepartments.length != 0){
                     appointment.groupsInDepartments.forEach(group_id => {
 
@@ -128,7 +132,8 @@ export class ChangesUiManager {
                         changes.push(new ChangesUIRecordClass(group, branch, appointment.startTimeSlot, appointment.endTimeSlot, appointment));
                     })
                 } else {
-                    console.log("Skipping: " + appointment.type + "" + appointment.subjects);
+                    console.log("Skipping: " + appointment.type + " " + appointment.subjects);
+                    console.log(appointment)
                 }
             })
 
