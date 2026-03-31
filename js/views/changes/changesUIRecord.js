@@ -22,7 +22,7 @@ export class ChangesUIRecord {
         let el = document.createElement("div");
         el.classList.add("appointment", this.appointment.type)
         let this_morning = new Date(this.appointment.start * 1000)
-        this_morning.setHours(8, 0, 0)
+        this_morning.setHours(1, 0, 0)
 
         if (this_morning.getTime() < (this.appointment.lastModified * 1000)) {
             el.classList.add("new")
