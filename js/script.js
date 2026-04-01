@@ -74,8 +74,8 @@ $(document).ready(function () {
             setInterval(()=> {
 
                 let new_date = new Date();
-                if(last_checked_date.getDate() < new_date.getDate()){
-                    //FIXME: now we do a hard reload
+                if(last_checked_date.toDateString() !== new_date.toDateString()){
+                    // day changed, reload page
                     location.reload()
                     let diff = Math.round((new_date.getTime() - last_checked_date.getTime())/ (1000 * 3600 * 24));
                     let new_date_obk = new Date(connector.date)
