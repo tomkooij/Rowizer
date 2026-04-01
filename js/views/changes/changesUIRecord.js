@@ -35,6 +35,9 @@ export class ChangesUIRecord {
         if(!this.appointment.valid) {
             el.classList.add('invalid');
         }
+        if(this.appointment.cancelled) {
+            el.classList.add('cancelled');
+        }
         el.setAttribute('data-appointment-id', this.appointment.id);
         el.innerText = this.getInnerText()
 
