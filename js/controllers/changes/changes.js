@@ -206,10 +206,10 @@ class Changes {
                 let endTime = new Date(appointment.end * 1000).getHours() + ":" + ("00" + new Date(appointment.end * 1000).getMinutes()).slice(-2)
                 appointment.locations[0] += " " + startTime + "-" + endTime
                 
-                let startSlot = timeslots.find(slot=> appointment.start <= slot.startDt.getTime()/1000)
+                let startSlot = timeslots.find(slot=> appointment.start <= slot.endDt.getTime()/1000)
                 let startSlotIndex = timeslots.indexOf(startSlot) + 1;
                 if (startSlotIndex === 0) startSlotIndex = 1; // start voor of precies 8.30 
-                let endSlot = timeslots.find(slot=> appointment.end <= slot.startDt.getTime()/1000)
+                let endSlot = timeslots.find(slot=> appointment.end <= slot.endDt.getTime()/1000)
                 //let endSlotIndex = timeslots.indexOf(endSlot) + 1
                 let endSlotIndex = timeslots.length + 1;
                 if (endSlot != undefined) {
