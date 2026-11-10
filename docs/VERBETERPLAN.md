@@ -134,6 +134,15 @@ Overige meetgegevens die het ontwerp sturen:
 1. **Niet pushen naar `live`.** De remote `live` (`Coornhert-Gymnasium/Rowizer`) is de
    productie-installatie; een push komt op het scherm in de hal. Alleen lokaal committen,
    tenzij Tom uitdrukkelijk om een push vraagt.
+   Pushen naar `origin` (`tomkooij/Rowizer`) gaat via de `gh`-login over HTTPS; SSH werkt in
+   deze omgeving niet (`Permission denied (publickey)`). Pas de remotes niet aan, maar gebruik:
+
+   ```bash
+   git -c credential.helper= -c credential.helper='!gh auth git-credential' push https://github.com/tomkooij/Rowizer.git <branch>
+   ```
+
+   Controleer daarna met `gh api repos/tomkooij/Rowizer/branches/<branch> --jq .commit.sha`
+   dat de commit er staat.
 2. Werk op een branch per fase (`plan/fase-0-tests`, `plan/fase-1-fouten`, ...), één commit
    per stap, commitberichten in dezelfde stijl als de bestaande (Engels, gebiedende wijs).
 3. Geen buildstap en geen runtime-dependencies toevoegen. De pagina moet rechtstreeks vanaf
