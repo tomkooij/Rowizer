@@ -147,23 +147,25 @@ Overige meetgegevens die het ontwerp sturen:
    per stap, commitberichten in dezelfde stijl als de bestaande (Engels, gebiedende wijs).
 3. Geen buildstap en geen runtime-dependencies toevoegen. De pagina moet rechtstreeks vanaf
    GitHub Pages blijven werken. Ontwikkel-tooling mag alleen wat Node zelf meelevert.
-4. Het scherm draait op een signage-speler (GoBright; `window.caches` ontbreekt daar, zie
-   `session.js:15`). Gebruik geen webfuncties die nieuwer zijn dan wat de code nu al gebruikt
-   (private velden, `Array.prototype.at`, `??`, CSS subgrid). Ga er niet van uit dat
-   `localStorage` of service workers beschikbaar zijn.
+4. Het scherm in de hal is Chromium op een Raspberry Pi, tijdzone Amsterdam; de versie is
+   niet bekend. Gebruik geen webfuncties die nieuwer zijn dan wat de code nu al gebruikt
+   (private velden, `Array.prototype.at`, `??`, CSS subgrid). `localStorage` en service
+   workers mogen, maar altijd met een controle of ze werken, omdat andere scholen de app op
+   andere spelers draaien (de opmerking over GoBright in `session.js:15` komt daar vandaan).
+   De Pi is traag en heeft weinig geheugen: geen zware animaties, geen grote DOM.
 5. Controleer elke zichtbare wijziging in de browser: start de server uit
    `.claude/launch.json` (`rowizer-static`, poort 8765) en open de demo-URL uit de README met
    `localhost:8765` als host. Testdagen: `date=23-9-2026` (drukke dag, 62 items, toetsen,
    activiteit, afwezigen) en `date=26-9-2026` (zaterdag, leeg). Controleer op 1920×1080 én
    3840×2160.
-6. Bestaand gedrag dat niet in een stap genoemd wordt, blijft gelijk. Bij twijfel over wat een
-   school wil zien: niet gokken maar de vraag in §6 laten beantwoorden.
+6. Bestaand gedrag dat niet in een stap genoemd wordt, blijft gelijk. De keuzes in §6 zijn besloten. Komt er
+   een nieuwe keuze op over wat een school wil zien: niet gokken maar aan Tom voorleggen.
 7. Commentaar in de code is Nederlands, namen en logmeldingen Engels – houd dat aan.
 
 ## 4. Stappenplan
 
 Volgorde: fase 0 eerst (vangnet), dan fase R (robuustheid), daarna 1 en 2 (zichtbare fouten
-en leesbaarheid). Fase 3 bevat keuzes die Tom eerst moet maken. Fase 4 kan altijd tussendoor.
+en leesbaarheid). De keuzes voor fase 3 staan in §6. Fase 4 kan altijd tussendoor.
 
 ### Fase 0 – Vangnet
 
@@ -257,18 +259,21 @@ Ontwerpprincipes voor alle stappen:
 - Klaar als: de fixturetest uit 0.2 ongewijzigd slaagt en een nagebootste fout halverwege het
   laden de vorige momentopname intact laat.
 
-**R.5 Lesuren per afdeling (R1)**
-- Sla `realizedweektimetables` op per `departmentOfBranch` en gebruik de ingesloten
-  `timeSlots<Dag>`-lijsten. Controleer eerst op de fixtures dat `code`, `start`, `end` en
-  `rank` voor alle afdelingen aanwezig zijn; zo ja, laat dan de aparte verzoeken naar
-  `timeslots` en `daytimetables` vervallen.
-- Nieuw: `getTimeSlots(departmentId)`. Zonder argument: de vereniging van alle rangnummers,
-  voor de kolomkoppen.
-- Gebruik de afdeling van de afspraak bij het bepalen van het lesuur voor afspraken zonder
-  lesuur (`changes.js:119-139`). Zit een afspraak in meerdere afdelingen met verschillende
-  tijden, bepaal de kolommen dan per afdeling.
-- Afwezigen zijn niet aan een afdeling gebonden: gebruik het dagrooster dat de meeste
-  afdelingen delen en toon bij twijfel de tijd in plaats van lesuurnummers.
+**R.5 Dagrooster betrouwbaar bepalen (R1)**
+- Besluit 8: het Coornhert gebruikt één dagrooster voor alle afdelingen. Bouw daarom de
+  eenvoudige vorm, maar maak de keuze niet langer willekeurig.
+- Lees `realizedweektimetables` en gebruik de ingesloten `timeSlots<Dag>`-lijsten. Controleer
+  eerst op de fixtures dat `code`, `start`, `end` en `rank` aanwezig zijn; zo ja, laat dan de
+  aparte verzoeken naar `timeslots` en `daytimetables` vervallen.
+- Kies het dagrooster dat de meeste afdelingen (zonder de genegeerde uit `departmentsIgnore`)
+  die dag gebruiken. Zijn er meer dan één, zet dan een waarschuwing in de diagnose van R.13
+  met de aantallen ("2 dagroosters vandaag: 10 en 6 afdelingen"); op het scherm verandert
+  niets.
+- Houd de functie `getTimeSlots(departmentId)` als enige toegang, ook al geeft ze nu voor
+  elke afdeling hetzelfde terug. Een school met verschillende roosters kan dat later
+  uitbreiden zonder de aanroepers te wijzigen.
+- Test op de fixtures van de demo-portal (10 en 6 afdelingen): het rooster van de 10 wordt
+  gekozen en de waarschuwing verschijnt.
 - Stap 2.2 en 2.3 bouwen hierop voort.
 
 **R.6 Tijd los van de speler (R9)**
@@ -282,6 +287,9 @@ Ontwerpprincipes voor alle stappen:
 - Klokcontrole: de bereikbaarheidscheck in `index.html` leest de `Date`-header van het eigen
   domein. Wijkt de klok meer dan 2 minuten af, reken dan met de gecorrigeerde tijd en toon
   een kleine waarschuwing "klok van dit scherm loopt niet gelijk".
+- Besluit 7: de Pi staat op tijdzone Amsterdam, dus het rekenen in een vaste tijdzone is
+  een vangnet en geen reparatie. De klokcontrole is wel nodig: een Pi zonder netwerk bij
+  het opstarten heeft een verkeerde klok tot NTP gelukt is.
 - Tests: zomer- en wintertijd, de overgangsdagen, en een proces met `TZ=UTC` en
   `TZ=America/New_York` dat dezelfde uitkomsten geeft.
 
@@ -327,11 +335,14 @@ Ontwerpprincipes voor alle stappen:
   | Alles binnen 2 intervallen ververst | "bijgewerkt 10:35" klein in de legenda |
   | Wijzigingen ouder dan 15 min | Oranje balk: "Geen verbinding met Zermelo – stand van 10:35" |
   | Wijzigingen ouder dan 60 min | Rode balk over de volle breedte met dezelfde tekst |
-  | `auth` | "Token ongeldig of verlopen – neem contact op met de roostermaker" |
-  | `permission` buiten afwezigen | "Token mist rechten of Zermelo is gewijzigd (<endpoint>)" |
-  | Opstarten mislukt, nog nooit gelukt | "Portal '<naam>' niet bereikbaar – controleer de instellingen" |
+  | `auth` | "Roosterwijzigingen tijdelijk niet beschikbaar" |
+  | `permission` buiten afwezigen | "Roosterwijzigingen tijdelijk niet beschikbaar" |
+  | Opstarten mislukt, nog nooit gelukt | "Roosterwijzigingen tijdelijk niet beschikbaar" |
   | Afwezigen ouder dan 30 min | Regel grijs met "(stand van 10:35)"; na 2 uur verbergen |
 
+- Besluit 9: op het scherm staat alleen neutrale tekst. De oorzaak (soort fout, endpoint,
+  HTTP-status, Zermelo-melding) staat in het diagnosepaneel van R.13 en als korte code in
+  de kleine regel rechtsonder, bijvoorbeeld `auth 401`.
 - Stap 1.4 gaat hierin op, behalve het instelscherm bij ontbrekende parameters.
 
 **R.11 Onafhankelijke waakhond met rem (R3, R10)**
@@ -346,7 +357,8 @@ Ontwerpprincipes voor alle stappen:
 **R.12 Zelfcontrole van het token (R15)**
 - Bij het opstarten en daarna eens per dag `tokens/~current` opvragen. Mislukt dit met
   `permission`, dan overslaan zonder melding.
-- Verloopt het token binnen 30 dagen: gele melding "Zermelo-token verloopt op <datum>".
+- Verloopt het token binnen 30 dagen: korte code `token <datum>` in de regel rechtsonder en
+  de volledige melding in het diagnosepaneel (besluit 9: geen technische tekst op het scherm).
 - Leg de gebruikersnaam en vervaldatum vast voor de diagnose van R.13.
 
 **R.13 Token niet naar de webhost, en diagnose op afstand (R14, R18, R16)**
@@ -373,13 +385,13 @@ Ontwerpprincipes voor alle stappen:
   | S2 | Netwerk terug | Binnen 1 interval ververst; balk weg |
   | S3 | Zermelo geeft 503 met HTML | Als S1 |
   | S4 | Zermelo geeft 429 | Wachttijd volgens `Retry-After`; geen retry-storm |
-  | S5 | Token ingetrokken tijdens bedrijf (401) | Bord blijft staan; tokenmelding; proefverzoek elke 10 min |
+  | S5 | Token ingetrokken tijdens bedrijf (401) | Bord blijft staan; neutrale melding en code `auth 401`; proefverzoek elke 10 min |
   | S6 | Verzoek blijft hangen | Afgebroken na 30 s; behandeld als S1 |
   | S7 | Antwoord met afgekapte JSON of `totalRows` > rijen | Ronde telt als mislukt; vorige stand blijft |
   | S8 | Afspraak met uur buiten het raster, onbekende groep, lege velden | Rest van het bord correct; teller in diagnose |
   | S9 | Zermelo onbereikbaar bij de dagwissel | "Rooster van <dag> wordt geladen"; herstelt vanzelf; geen paginaherlading |
-  | S10 | Schooljaar bestaat nog niet (1 augustus) | Melding "Geen rooster voor dit schooljaar"; hoogstens 1 poging per 30 min |
-  | S11 | Verkeerde portalnaam | Instelmelding; rem uit R.11 werkt |
+  | S10 | Schooljaar bestaat nog niet (1 augustus) | Melding "Vandaag geen lessen"; hoogstens 1 poging per 30 min |
+  | S11 | Verkeerde portalnaam | Neutrale melding; oorzaak in de diagnose; rem uit R.11 werkt |
   | S12 | Speler op UTC, klok 10 min voor | Juiste dag en tijden; klokwaarschuwing |
   | S13 | Fout in de weergavecode (kunstmatig) | Vorige beeld blijft; "weergavefout"; waakhond herlaadt na 15 min |
   | S14 | Scherm 12 uur uit en weer aan | Binnen 1 minuut juiste dag en verse gegevens |
@@ -392,20 +404,21 @@ Ontwerpprincipes voor alle stappen:
 - Eerst op de demo-portal uitzoeken wat `modifiedSince` precies meldt bij uitval en
   verwijdering; zonder duidelijke uitkomst deze stap overslaan.
 
-**R.16 Starten zonder Zermelo (optioneel)**
+**R.16 Starten zonder Zermelo**
 - Is `localStorage` beschikbaar (testen met schrijven en teruglezen), bewaar dan na elke
   geslaagde ronde de momentopname en de getoonde gegevens van vandaag. Bij een koude start
   zonder verbinding toont het bord die stand met de rode balk uit R.10.
 - Nooit het token opslaan. Gegevens van een andere dag niet tonen.
 
-**R.17 Starten zonder webhost (optioneel)**
+**R.17 Starten zonder webhost**
 - Is `serviceWorker` beschikbaar, registreer dan een worker die de eigen bestanden uit de
   cache levert als GitHub Pages niet bereikbaar is. Op spelers zonder ondersteuning verandert
   er niets.
 - Controleer dat stap 3.5 (nieuwe versie ophalen) blijft werken: netwerk eerst, cache als
   terugval.
-- Noteer in de README welke instelling van de speler zelf nodig is om na een stroomstoring de
-  pagina opnieuw te proberen; dat kan de app niet oplossen.
+- Noteer in de README hoe Chromium op de Pi in kioskmodus hoort te starten (wachten op
+  netwerk voor het openen van de pagina, automatisch herstarten na een crash); dat kan de
+  app niet oplossen.
 
 ### Fase 1 – Zichtbare fouten
 
@@ -489,10 +502,11 @@ Ontwerpprincipes voor alle stappen:
   lege `<style>` en uitgecommentarieerde script-tag weg.
 - Vervang `overflow-y: overlay` en corrigeer de scrollbalk-selector (zie §2.4).
 
-### Fase 3 – Functionele uitbreidingen (eerst §6 beantwoorden)
+### Fase 3 – Functionele uitbreidingen
 
 **3.1 Niet-getoonde gegevens niet meer ophalen (V1)**
-- Verwijder de categorie `invalid` uit `changes.js:55-57`, tenzij stap 3.3 wordt uitgevoerd.
+- Besluit 1: alleen uitvoeren als 3.3 afvalt.
+- Verwijder de categorie `invalid` uit `changes.js:55-57`.
 - Klaar als: 4 in plaats van 5 `appointments`-verzoeken per ronde en hetzelfde bord.
 
 **3.2 Rusttijden (V2)**
@@ -507,7 +521,7 @@ Ontwerpprincipes voor alle stappen:
 - Koppel oud en nieuw via `appointmentInstance`. Eerst op de fixtures uitzoeken of dat veld
   daarvoor betrouwbaar is; zo niet, deze stap melden en overslaan.
 
-**3.4 Morgen tonen na de laatste les**
+**3.4 Morgen tonen na de laatste les – niet uitvoeren (besluit 2)**
 - Parameter `tomorrowAfter` (bijvoorbeeld `16:30`, standaard uit). Daarna toont het bord de
   eerstvolgende dag met een dagrooster, met de datum duidelijk in de titel
   ("Roosterwijzigingen morgen – donderdag 24 september").
@@ -518,7 +532,8 @@ Ontwerpprincipes voor alle stappen:
 - Elke verversronde `js/version.js` ophalen met `cache: "no-store"`; wijkt de versie af van
   de geladen versie, dan `window.rowizerReload()`.
 - Laat de stempel door een GitHub Action zetten bij een push naar `master` in plaats van met
-  de hand, zodat de hash klopt. Overleg eerst: deze workflow moet ook in de `live`-repo werken.
+  de hand, zodat de hash klopt. Besluit 4: alleen in
+  `origin`. In de `live`-repo blijft de stempel handwerk; de versiecontrole werkt daar ook mee.
 
 **3.6 Token minder zichtbaar (V6)**
 - `<meta name="referrer" content="no-referrer">` in `index.html` (altijd doen).
@@ -533,8 +548,8 @@ Ontwerpprincipes voor alle stappen:
   (laat `ZermeloConnector` niets meer uitbreiden, verwijder `super(options)`); lege
   `merge()`-methodes; `Number(r.id)` in `manager.js:11`; de ongebruikte velden `#date`,
   `#schoolInYear` in `Changes`.
-- Ongebruikte managers alleen verwijderen als Tom geen upstream-merges meer verwacht; anders
-  laten staan (ze kosten niets tijdens het draaien).
+- Ongebruikte managers laten staan (besluit 5); ze kosten niets tijdens het draaien en
+  houden een latere merge met upstream eenvoudig.
 
 **4.2 Debug achter een schakelaar**
 - `window.ad/cm/zc/dc` en het loggen van complete afspraken alleen met `?debug=1`.
@@ -562,8 +577,10 @@ Ontwerpprincipes voor alle stappen:
 | E | 1.1, 1.2, 1.3, 1.5 | Fouten die leerlingen nu zien |
 | F | 2.1, 2.2 | Grootste winst in leesbaarheid; 2.2 bouwt op R.5 |
 | G | 1.4 (instelscherm), 1.6, 1.7, 2.3 – 2.6 | Afwerking |
-| H | 3.1, 3.2, 3.5 | Minder verzoeken, sneller uitrollen |
-| I | 3.3, 3.4, R.15 – R.17 | Alleen na akkoord op §6 |
+| H | 3.2, 3.5 (3.1 alleen als 3.3 afvalt) | Minder verzoeken, sneller uitrollen |
+| I | 3.3, R.16, R.17 | Besloten in §6 |
+| – | R.15 | Optioneel; begint met uitzoeken wat `modifiedSince` meldt |
+| – | 3.4 | Vervalt (besluit 2) |
 | J | 4.1 – 4.4 | Kan tussendoor, 4.3 pas na blok A |
 
 Wie snel zichtbaar resultaat wil, kan blok E naar voren halen (na A); het raakt andere
@@ -581,22 +598,24 @@ Samenhang met eerdere stappen:
 Fase R is de grootste: de connector, de sessie en `script.js` worden grotendeels herschreven
 en er komen ongeveer 6 modules bij. De overige blokken raken samen ongeveer 12 bestanden.
 
-## 6. Open vragen voor Tom
+## 6. Besluiten
 
-1. **Verplaatste lessen (3.3):** moet op het oude uur "verplaatst naar u5" komen, of is het
-   nieuwe uur tonen genoeg?
-2. **Morgen tonen (3.4):** gewenst, en zo ja vanaf welk tijdstip?
-3. **Rusttijden (3.2):** is 06:30-18:00 een goed standaardvenster voor het Coornhert?
-4. **Uitrol (3.5):** mag er een GitHub Action in de `live`-repo komen die de versie stempelt?
-5. **Upstream:** moeten de algemene fixes (1.1, 1.2, 1.6, 2.1) als PR naar
-   `Vlietland-College/Rowizer`? Dat bepaalt hoe voorzichtig 4.1 met verwijderen moet zijn.
-6. **Afwezigen (1.1):** bij deels afwezig het bereik tonen (`krh (1-3)`), of alleen de naam?
-7. **Speler:** welke speler en browserversie draait in de hal, en op welke tijdzone staat
-   hij? Dat bepaalt of R.16 en R.17 zin hebben en hoe zwaar R.6 weegt.
-8. **Dagroosters (R.5):** gebruikt het Coornhert verschillende dagroosters per afdeling
-   (bijvoorbeeld een verkort rooster voor een deel van de school)? Zo nee, dan kan R.5
-   eenvoudiger: één rooster, met een waarschuwing in de diagnose als er meer blijken te zijn.
-9. **Meldingen (R.10):** mag een technische melding ("Token ongeldig") op het scherm in de
-   hal, of liever een neutrale tekst met de details alleen in het diagnosepaneel?
-10. **Zermelo-limieten:** er is geen gedocumenteerde limiet gevonden. Weet de applicatie-
-    beheerder of Zermelo afspraken heeft over het aantal verzoeken per token?
+Vastgelegd op 10-11-2026. Vraag 7 en 8 zijn door Tom beantwoord; bij de overige is het
+voorstel uit de analyse overgenomen. Dit zijn geen open vragen meer: voer de stappen uit
+zoals hier besloten.
+
+| # | Onderwerp | Besluit | Gevolg |
+|---|---|---|---|
+| 1 | Verplaatste lessen (3.3) | Op het oude uur "verplaatst naar u5" tonen, mits de koppeling via `appointmentInstance` op de fixtures betrouwbaar blijkt | 3.3 uitvoeren; 3.1 vervalt dan (de `invalid`-afspraken zijn nodig). Blijkt de koppeling onbetrouwbaar: 3.3 overslaan en 3.1 uitvoeren |
+| 2 | Morgen tonen (3.4) | Niet doen | 3.4 overslaan |
+| 3 | Rusttijden (3.2) | Venster 06:30-18:00 als standaard | 3.2 uitvoeren |
+| 4 | Versiestempel via GitHub Action (3.5) | Alleen in `origin`, niet in de `live`-repo | 3.5 uitvoeren; de workflow mag niets naar `live` pushen |
+| 5 | PR's naar upstream | Voorlopig niet; alles blijft in de eigen fork | Geen PR's openen. 4.1: dode code verwijderen, ongebruikte managers laten staan |
+| 6 | Afwezigen (1.1) | Bereik tonen: `krh (1-3)` | 1.1 zoals beschreven |
+| 7 | Speler | Chromium op een Raspberry Pi, tijdzone Amsterdam | Zie werkafspraak 4. R.16 en R.17 zijn zinvol en worden uitgevoerd. R.6: de tijdzone is goed, maar een Pi heeft geen klok met batterij; de klokcontrole blijft dus nodig |
+| 8 | Dagroosters per afdeling (R.5) | Het Coornhert gebruikt er geen verschillende | R.5 in de eenvoudige vorm: één dagrooster, met een waarschuwing in de diagnose als er meer blijken te zijn |
+| 9 | Meldingen op het scherm (R.10) | Neutrale tekst op het scherm, technische details alleen in het diagnosepaneel | Teksten in R.10 en R.12 aangepast |
+| 10 | Zermelo-limieten | Onbekend | Voorzichtig beleid uit R.3 aanhouden |
+
+Nog uit te zoeken door Tom, niet blokkerend: de Chromium-versie op de Pi (bepaalt of nieuwere
+webfuncties mogen) en of Zermelo afspraken heeft over het aantal verzoeken per token.
