@@ -107,7 +107,7 @@ haalt de rest niet onderuit.
 | R9 | **Alles rekent met de klok en tijdzone van de speler.** Daggrenzen, lestijden, de "nieuw"-markering en de dagwissel gebruiken lokale tijd. Staat de speler op UTC of loopt de klok fout, dan wordt het verkeerde dagvenster opgevraagd en kloppen getoonde tijden niet. | Code; `date.js:35-45`, `changes.js:122-123`, `zermeloConnector.js:261-264` |
 | R10 | **Stilstand wordt niet opgemerkt.** Veroudering wordt alleen gemeld als een ronde mislukt. Stopt een loop (bijvoorbeeld door een promise die nooit afloopt), dan blijft het bord er actueel uitzien. Er is geen waakhond op de loops zelf. | Code; `script.js:80-92` |
 | R11 | **Afwezigen en externe activiteiten falen onzichtbaar.** Alleen de wijzigingenloop zet een statusmelding; verouderde afwezigen blijven de hele dag staan zonder aanduiding. | Code; `script.js:125-155` |
-| R12 | **Retrybeleid is star.** Vaste wachttijden (2 s, 5 s), geen spreiding, geen `Retry-After` bij 429, en de drie loops proberen onafhankelijk van elkaar opnieuw. Er is geen gedocumenteerde limiet van Zermelo gevonden; ga dus uit van voorzichtig gedrag. | Code; `session.js:3-4,22-34` |
+| R12 | **Retrybeleid is star.** Vaste wachttijden (2 s, 5 s), geen spreiding, geen `Retry-After` bij 429, en de drie loops proberen onafhankelijk van elkaar opnieuw. Zermelo hanteert geen verzoeklimiet per token (navraag Tom); de app legt zichzelf daarom een budget op (R.3). | Code; `session.js:3-4,22-34` |
 | R13 | **Antwoorden worden niet gecontroleerd.** De envelop bevat `startRow`, `endRow` en `totalRows`, maar een onvolledig antwoord wordt niet herkend; rijen zonder `id`, `start` of `end` gaan ongezien door. | Gemeten (envelop); `manager.js:7-14` |
 | R14 | **Het token gaat naar de webhost.** Het staat in de query-string en wordt dus bij elke paginalading naar GitHub Pages gestuurd, en nog eens bij elke bereikbaarheidscheck. | Code; `index.html:10` |
 | R15 | **Het token kan verlopen zonder waarschuwing.** `tokens/~current` geeft de vervaldatum (demo: 13-9-2030) en de rechten; de app gebruikt dat niet. | Gemeten |
@@ -147,11 +147,13 @@ Overige meetgegevens die het ontwerp sturen:
    per stap, commitberichten in dezelfde stijl als de bestaande (Engels, gebiedende wijs).
 3. Geen buildstap en geen runtime-dependencies toevoegen. De pagina moet rechtstreeks vanaf
    GitHub Pages blijven werken. Ontwikkel-tooling mag alleen wat Node zelf meelevert.
-4. Het scherm in de hal is Chromium op een Raspberry Pi, tijdzone Amsterdam; de versie is
-   niet bekend. Gebruik geen webfuncties die nieuwer zijn dan wat de code nu al gebruikt
-   (private velden, `Array.prototype.at`, `??`, CSS subgrid). `localStorage` en service
-   workers mogen, maar altijd met een controle of ze werken, omdat andere scholen de app op
-   andere spelers draaien (de opmerking over GoBright in `session.js:15` komt daar vandaan).
+4. Het scherm in de hal is Chromium 145.0.7632.116 op een Raspberry Pi met Debian 12
+   (bookworm), tijdzone Amsterdam. Die versie ondersteunt alles wat de code nu gebruikt
+   (private velden, `Array.prototype.at`, `??`, CSS subgrid) en ook `localStorage`, service
+   workers, `Intl` met tijdzones, `AbortSignal.timeout` en `replaceChildren`. Blijf toch bij
+   het niveau van de huidige code en gebruik `localStorage` en service workers alleen na een
+   controle of ze werken: andere scholen draaien de app op andere spelers (de opmerking over
+   GoBright in `session.js:15` komt daar vandaan), en de Pi wordt niet vanzelf bijgewerkt.
    De Pi is traag en heeft weinig geheugen: geen zware animaties, geen grote DOM.
 5. Controleer elke zichtbare wijziging in de browser: start de server uit
    `.claude/launch.json` (`rowizer-static`, poort 8765) en open de demo-URL uit de README met
@@ -243,8 +245,30 @@ Ontwerpprincipes voor alle stappen:
   "storing". Andere loops slaan hun ronde dan over; één proefverzoek per interval bepaalt of
   de storing voorbij is. Het interval loopt op van 1 naar 2, 5 en maximaal 10 minuten.
 - `fetch` met `credentials: "omit"` en `cache: "no-store"`.
+- **Eigen verzoekbudget.** Zermelo hanteert geen limiet per token (besluit 10). Het budget
+  hieronder is dus een zelfgekozen grens: ruim boven normaal gebruik, zodat het nooit in de
+  weg zit, en laag genoeg om een fout in de eigen code (een lus die doordraait) te stoppen
+  voordat de portal van de school er last van heeft.
+
+  | Grens | Waarde | Normaal gebruik ter vergelijking |
+  |---|---|---|
+  | Gelijktijdige verzoeken | 2 | – |
+  | Tussenruimte tussen twee verzoeken | minimaal 250 ms | – |
+  | Per 10 minuten (schuivend venster) | 60 | ongeveer 14; bij opstarten ongeveer 20; met R.15 ongeveer 24 |
+  | Per etmaal | 2500 | ongeveer 1000 binnen het venster 06:30-18:00 |
+
+  De waarden gelden per scherm en staan als constanten bovenaan `session.js`. Geen
+  URL-parameter: een school hoort dit niet per ongeluk te kunnen verhogen.
+- Budget op: geen fout gooien maar het verzoek laten wachten tot er ruimte is; een verzoek
+  dat langer dan 2 minuten wacht mislukt met soort `rate`. De teller en het aantal keren dat
+  het budget is geraakt komen in de diagnose van R.13. Het raken van het budget is altijd een
+  fout in de app en geen normale toestand: log het als waarschuwing.
+- De etmaalteller begint opnieuw bij de dagwissel (R.7) en bij een paginaherlading; bewaar
+  hem daarom in `window.name` naast de herlaadteller van R.11, zodat een herlaadlus het
+  budget niet omzeilt.
 - Tests met `node:test` mock-timers: wachttijden, de bovengrens, herstel na één geslaagd
-  proefverzoek.
+  proefverzoek, het 61e verzoek binnen 10 minuten wacht, en het budget overleeft een
+  nagebootste herlading.
 
 **R.4 Basisgegevens als momentopname (R6, R16)**
 - Haal het laden uit de constructor van `ZermeloConnector`. Nieuw: `async loadBaseData(date)`
@@ -385,6 +409,7 @@ Ontwerpprincipes voor alle stappen:
   | S2 | Netwerk terug | Binnen 1 interval ververst; balk weg |
   | S3 | Zermelo geeft 503 met HTML | Als S1 |
   | S4 | Zermelo geeft 429 | Wachttijd volgens `Retry-After`; geen retry-storm |
+  | S4b | Kunstmatige lus die blijft verversen | Na 60 verzoeken in 10 min wachten de volgende; bord blijft staan; teller in diagnose |
   | S5 | Token ingetrokken tijdens bedrijf (401) | Bord blijft staan; neutrale melding en code `auth 401`; proefverzoek elke 10 min |
   | S6 | Verzoek blijft hangen | Afgebroken na 30 s; behandeld als S1 |
   | S7 | Antwoord met afgekapte JSON of `totalRows` > rijen | Ronde telt als mislukt; vorige stand blijft |
@@ -612,10 +637,7 @@ zoals hier besloten.
 | 4 | Versiestempel via GitHub Action (3.5) | Alleen in `origin`, niet in de `live`-repo | 3.5 uitvoeren; de workflow mag niets naar `live` pushen |
 | 5 | PR's naar upstream | Voorlopig niet; alles blijft in de eigen fork | Geen PR's openen. 4.1: dode code verwijderen, ongebruikte managers laten staan |
 | 6 | Afwezigen (1.1) | Bereik tonen: `krh (1-3)` | 1.1 zoals beschreven |
-| 7 | Speler | Chromium op een Raspberry Pi, tijdzone Amsterdam | Zie werkafspraak 4. R.16 en R.17 zijn zinvol en worden uitgevoerd. R.6: de tijdzone is goed, maar een Pi heeft geen klok met batterij; de klokcontrole blijft dus nodig |
+| 7 | Speler | Chromium 145.0.7632.116 op een Raspberry Pi met Debian 12 (bookworm), tijdzone Amsterdam | Zie werkafspraak 4. R.16 en R.17 zijn zinvol en worden uitgevoerd. R.6: de tijdzone is goed, maar een Pi heeft geen klok met batterij; de klokcontrole blijft dus nodig |
 | 8 | Dagroosters per afdeling (R.5) | Het Coornhert gebruikt er geen verschillende | R.5 in de eenvoudige vorm: één dagrooster, met een waarschuwing in de diagnose als er meer blijken te zijn |
 | 9 | Meldingen op het scherm (R.10) | Neutrale tekst op het scherm, technische details alleen in het diagnosepaneel | Teksten in R.10 en R.12 aangepast |
-| 10 | Zermelo-limieten | Onbekend | Voorzichtig beleid uit R.3 aanhouden |
-
-Nog uit te zoeken door Tom, niet blokkerend: de Chromium-versie op de Pi (bepaalt of nieuwere
-webfuncties mogen) en of Zermelo afspraken heeft over het aantal verzoeken per token.
+| 10 | Zermelo-limieten | Zermelo hanteert geen verzoeklimiet per token. De app houdt zichzelf aan een eigen budget: 60 verzoeken per 10 minuten en 2500 per etmaal, per scherm | Budget en retrybeleid uit R.3 uitvoeren |
